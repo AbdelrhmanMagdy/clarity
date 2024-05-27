@@ -8,6 +8,7 @@ import * as mutation from "@src/layout/mutation";
 import * as schema from "@src/layout/schema";
 import { checkDocumentStyles } from "@src/layout/style";
 import { electron } from "@src/data/metadata";
+import { bind } from "@src/core/event";
 
 const IGNORE_ATTRIBUTES = ["title", "alt", "onload", "onfocus", "onerror", "data-drupal-form-submit-last", "aria-label"];
 const newlineRegex = /[\r\n]+/g;
@@ -207,7 +208,10 @@ export default function (node: Node, source: Source, timestamp: number): Node {
 
 function observe(root: Node): void {
     if (dom.has(root)) { return; }
-    mutation.observe(root); // Observe mutations for this root node
+    // Delay loading dom mutations to improve the initial page load time
+    bind(window, "load", () => {
+        mutation.observe(root);
+    });
     interaction.observe(root); // Observe interactions for this root node
 }
 
