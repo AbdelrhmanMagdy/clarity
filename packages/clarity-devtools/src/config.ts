@@ -20,3 +20,5 @@ export default function(): Core.Config {
         checksum: [],
     };
 }
+
+export const enableClarityLiveMode = true;

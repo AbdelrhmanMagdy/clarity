@@ -47,11 +47,12 @@ function setup(url: string): void {
           case "upload":
             upload(event.data.payload);
             break;
+          case "clarity-live-data":
+            decompress(event.data.payload).then(upload);
+            break;
         }
       }
   });
-
-  
 }
 
 function wireup(settings: any): string {
@@ -79,4 +80,41 @@ function upload(data: string): void {
       console.warn("Payload failure, dev tools likely not open.");
     }
   });
+}
+
+async function decompress(compressedData) {
+  if (!compressedData 
+    || compressedData.length === 0 
+    || window["DecompressionStream"] as any === undefined 
+    || window["TextDecoderStream"] as any === undefined) 
+    return null;
+
+  try {
+      const uint8Array = new Uint8Array(compressedData);
+
+      const stream = new ReadableStream({
+          start(controller) {
+              controller.enqueue(uint8Array);
+              controller.close();
+          }
+      });
+
+      const decompressedStream = stream
+          .pipeThrough(new (window["DecompressionStream"] as any)("gzip")) 
+          .pipeThrough(new (window["TextDecoderStream"] as any)()); 
+
+      const reader = decompressedStream.getReader();
+      let decompressedText = "";
+
+      while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          decompressedText += value;
+      }
+
+      return decompressedText;
+  } catch (error) {
+      console.error("Native decompression failed:", error);
+      return null;
+  }
 }
